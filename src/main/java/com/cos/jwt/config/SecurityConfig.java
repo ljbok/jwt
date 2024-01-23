@@ -1,10 +1,19 @@
 package com.cos.jwt.config;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.web.filter.CorsFilter;
 
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private final CorsFilter corsFilter;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -12,6 +21,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션을 사용하지 않겠다는 의미
                                                                                 // 우리는 token을 사용할 예정이니깐
         .and()
+        .addFilter(corsFilter) // 이렇게 하면 모든 요청이 이 안의 필터를 탄다.
+                        // 필터 적용 방법 중 컨트롤러에 붙이는 @CrossOrigin 어노테이션과 다른 점은
+                        // @CrossOrigin(인증 없을 때는), 시쿠리티 필터에 등록 (인증이 있을 때는)
         .formLogin().disable()   // jwt 서버라서 아이디 비밀번호를 폼 로그인하지 않는다. -> 폼 형태의 로그인을 사용하지 않는다.
         .httpBasic().disable()
         .authorizeRequests()
