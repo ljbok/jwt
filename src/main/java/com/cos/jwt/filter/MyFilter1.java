@@ -1,13 +1,19 @@
 package com.cos.jwt.filter;
 
 import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class MyFilter1 implements Filter {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        //테스트
+
         System.out.println("필터1");
+        filterChain.doFilter(servletRequest, servletResponse);
         /*
         // 이렇게만 작성하면 프로젝트가 이 필터 거치고 안녕만 출력되고 끝나버림
         // 그냥 예시 보여주려고 작성한 부분임 신경 크게 쓰지 말 것
@@ -15,7 +21,8 @@ public class MyFilter1 implements Filter {
         PrintWriter out = servletResponse.getWriter();
         out.println("안녕");
         */
-        filterChain.doFilter(servletRequest,servletResponse); // 이렇게 하면 필터 거친 후에도 종료되지 않고 유지된다!
+
+        //filterChain.doFilter(servletRequest,servletResponse); // 이렇게 하면 필터 거친 후에도 종료되지 않고 유지된다!
 
     }
 }

@@ -1,6 +1,8 @@
 package com.cos.jwt.config;
 
 import com.cos.jwt.filter.MyFilter1;
+import com.cos.jwt.filter.MyFilter3;
+import com.cos.jwt.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.filter.CorsFilter;
 
 @Configuration
@@ -19,6 +22,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        
+        // MyFilter3가 시큐리티 필터보다 먼저 동작하게 설정
+        http.addFilterBefore(new MyFilter3(), SecurityContextPersistenceFilter.class);
         http.csrf().disable();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션을 사용하지 않겠다는 의미
                                                                                 // 우리는 token을 사용할 예정이니깐
@@ -28,6 +34,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         // @CrossOrigin(인증 없을 때는), 시쿠리티 필터에 등록 (인증이 있을 때는)
         .formLogin().disable()   // jwt 서버라서 아이디 비밀번호를 폼 로그인하지 않는다. -> 폼 형태의 로그인을 사용하지 않는다.
         .httpBasic().disable()
+        .addFilter(new JwtAuthenticationFilter(authenticationManager())) // AuthenticationManager를 던져줘야 한다 파라미터로
         .authorizeRequests()
         .antMatchers("/api/v1/user/**") // 이 url에 접속하려면 바로 아래 줄의 권한이 있어야 한다.
         .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
