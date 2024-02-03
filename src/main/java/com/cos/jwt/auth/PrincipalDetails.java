@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.ArrayList;
 import java.util.Collection;
 
+
 public class PrincipalDetails implements UserDetails {
 
     // 빈 주입
@@ -23,6 +24,10 @@ public class PrincipalDetails implements UserDetails {
             authorities.add(() -> r);
         });
         return authorities;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     @Override
