@@ -1,5 +1,7 @@
 package com.cos.jwt.jwt;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.cos.jwt.auth.PrincipalDetails;
 import com.cos.jwt.model.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +17,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Date;
 
 // 스프링 시큐리티에서 UsernamePasswordAuthenticationFilter 이 필터가 있는데
 // 원래 이 필터는 /login 요청해서 username과 password를 전송하면(post)
@@ -55,7 +58,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
             // 포스트맨으로 테스트하기 때문에 (폼로그인이 아니라서) 직접 임의 토큰 만들기
             UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()); // 첫번째 파마미터 username 두번째 파라미터 password
+                  new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()); // 첫번째 파마미터 username 두번째 파라미터 password
             // 이렇게 임의로 만든 토큰으로 로그인 시도를 한 번 해보자!
             // 토큰을 날리자 -> PrincipalDetailsService의 loadUserByUsername() 함수가 실행됨(username만 던짐 pw db에서 알아서 해줌 스프링이)
             // PrincipalDetailsService의 loadUserByUsername()가 실행된 후 정상이면 authenctication이 리턴된다.
@@ -76,7 +79,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
             // 제대로 로그인이 되었다면 아래 값이 반환될 것이다.
             // 이렇게 return 될 때 객체가 session에 저장된다.
-            return authenticationToken;
+            return authentication;
 
         }catch (Exception e){
             e.printStackTrace();
@@ -84,7 +87,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         // (-------------------------------------------------------------------------------------------------------
         // 2. 정상인지 로그인 시도를 해본다. -> authenticationManager로 로그인 시도를 하면 PrincipalDetailsService가 호출된다.
         // 그러면 PrincipalDetailseService에 있는 loadUserByUsername 메소드가 자동으로 실행된다.
-        // 여기서 정상적으로 PrincipalDetails가 return이 되면S
+        // 여기서 정상적으로 PrincipalDetails가 return이 되면
         // 3. 그 principalDetails를 세션에 담고 (oauth2 방식과 다르게 Authentication 에 담지 않고 바로 세션에 담는다 ,,,,)
         // -> 굳이 세션에 담는 이유: 세션에 담지 않으면 권한 관리가 되지 않기 떄문
         //      하지만 권한관리가 필요없는 경우라면 (물론 그런 경우는 거의 없겠지만) principalDetails를 세션에 담지 않아도 된다.
@@ -100,8 +103,24 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     // jwt 토큰을 만들어서 request 요청한 사용자에게 jwt 토큰을 response해주면 됨.
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        System.out.println("successfulAuthentication 실행된 : 인증이 완료되었다는 뜻임");
-        super.successfulAuthentication(request, response, chain, authResult);
+        System.out.println("successfulAuthentication 실행됨 : 인증이 완료되었다는 뜻임");
+        PrincipalDetails principalDetails = (PrincipalDetails) authResult.getPrincipal();
+        // 위이 principalDetails 를 통해 토큰을 만들 것이다!
+        // jwt 토큰을 라이브러리를 이용해 만들 것이다!
+
+
+        // RSA 방식은 아니고 HMAC (Hash 암호화 방식) 방식 -> 더 많이 쓰이길래 이걸로 함
+        String jwtToken = JWT.create() // 빌드업 패턴을 토큰을 만들자 ( 라이브러리 사용한 거임 )
+                .withSubject("cos토큰") // 그냥 토큰 명 지정 "cos토큰" 대신에 username 넣어도 됨
+                .withExpiresAt(new Date(System.currentTimeMillis() + 60000*10)) // 1000이 1초 우리는 10분 설청
+                // └→ 만료시간 설정 : 만료 시간을 짧게 설정해주어야 토큰을 탈취당해도 문제가 적다.
+                .withClaim("id", principalDetails.getUser().getId()) // withClain은 비공개 claim인데 내가 넣고 싶은 값 막 넣으면 된다.
+                .withClaim("username", principalDetails.getUser().getUsername())
+                .sign(Algorithm.HMAC512("cos")); // HMAC512() 안에 들어갈 SECRET은 내 서버만 아는 고유의 값이어야 한다.
+        
+        // 사용자에게 보낼 응답
+        response.addHeader("Authorization", "Bearer "+jwtToken);
+
     }
 }
 
